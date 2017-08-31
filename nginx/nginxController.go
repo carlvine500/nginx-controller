@@ -14,91 +14,104 @@ import (
 	"os/exec"
 )
 
-func SyncConfigMapToDirectory(clientset *kubernetes.Clientset, configmap2file *string) {
-	glog.Infof("--configmap2file=", *configmap2file)
-	configmap2files := strings.Split(*configmap2file, ",")
-	for _, v := range configmap2files {
+func SyncConfigMapToLocalDir(clientset *kubernetes.Clientset, configmap2local *string) {
+	glog.Infof("--configmap2local=%s", *configmap2local)
+	configmap2locals := strings.Split(*configmap2local, ",")
+	for _, v := range configmap2locals {
 		pairs := strings.Split(v, ":")
 		configMapName := pairs[0];
-		directory := pairs[1];
-		if (!PathExists(directory)) {
-			err := os.MkdirAll(directory, 0777)
+		localDir := pairs[1];
+		if (!PathExists(localDir)) {
+			err := os.MkdirAll(localDir, 0777)
 			if err != nil {
 				panic(err.Error())
 			}
 		}
-		go watchConfigMap(clientset, configMapName, directory);
+		go watchConfigMap(clientset, configMapName, localDir);
 	}
 }
 
-func watchConfigMap(clientset *kubernetes.Clientset, configMapName string, directory string) {
+func watchConfigMap(clientset *kubernetes.Clientset, configMapName string, localDir string) {
 	watcher, whErr := clientset.CoreV1().ConfigMaps("default").Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", configMapName).String()})
 	if whErr != nil {
 		print(whErr)
 	}
-	glog.Infof("watch configMap=%s,directory=%s", configMapName, directory)
+	glog.Infof("watch configMap=%s,localDir=%s", configMapName, localDir)
 	c := watcher.ResultChan()
 	for {
 		select {
 		case e := <-c:
 			v := reflect.ValueOf(e.Object)
 			configMap, _ := v.Elem().Interface().(v1.ConfigMap)
-			syncFile(configMap, directory)
+			syncFile(configMap, localDir)
 		}
 	}
 }
 
-func syncFile(configMap v1.ConfigMap, directory string) {
+func syncFile(configMap v1.ConfigMap, localDir string) {
 	canNginxReload := false
-	fileList, err := ioutil.ReadDir(directory)
+	localFileList, err := ioutil.ReadDir(localDir)
 	if err != nil {
-		glog.Errorf("readDir fail, directory=%s,err=%v", directory, err)
+		glog.Errorf("readDir fail, localDir=%s,err=%v", localDir, err)
 	}
-	for _, fileInfo := range fileList {
-		value := configMap.Data[fileInfo.Name()]
-		realFilePath := directory + "/" + fileInfo.Name();
-		if len(value) == 0 {
-			glog.Infof("remove realFilePath =%s", realFilePath)
-			os.Remove(realFilePath)
+	for _, fileInfo := range localFileList {
+		if _, localFileExists := configMap.Data[fileInfo.Name()]; !localFileExists {
+			localFilePath := localDir + "/" + fileInfo.Name();
+			glog.Infof("remove localFilePath =%s", localFilePath)
+			os.Remove(localFilePath)
 			canNginxReload = true
 		}
 	}
 	for fileName, fileContent := range configMap.Data {
-		realFilePath := directory + "/" + fileName;
+		localFilePath := localDir + "/" + fileName;
 		newData := []byte( fileContent)
-		if !PathExists(realFilePath) {
-			err := ioutil.WriteFile(realFilePath, newData, 0644)
+		if !PathExists(localFilePath) {
+			err := ioutil.WriteFile(localFilePath, newData, 0644)
 			if err != nil {
-				glog.Errorf("fist time write fail, realFilePath =%s,err=%v", realFilePath, err)
+				glog.Errorf("fist time write fail, localFilePath =%s,err=%v", localFilePath, err)
 			} else {
-				glog.Infof("fist time write realFilePath =%s", realFilePath)
+				glog.Infof("fist time write localFilePath =%s", localFilePath)
 				canNginxReload = true
 			}
 		} else {
-			oldData, err := ioutil.ReadFile(realFilePath)
+			oldData, err := ioutil.ReadFile(localFilePath)
 			if err != nil {
-				glog.Errorf("read fail, realFilePath=%s,err=%v", realFilePath, err)
+				glog.Errorf("read fail, localFilePath=%s,err=%v", localFilePath, err)
 			}
 			if !bytes.Equal(oldData, newData) {
-				err := ioutil.WriteFile(realFilePath, newData, 0644)
+				err := ioutil.WriteFile(localFilePath, newData, 0644)
 				if err != nil {
-					glog.Errorf("configMap file changed,but write fail, realFilePath=%s,err=%v", realFilePath, err)
+					glog.Errorf("configMap file changed,but write fail, localFilePath=%s,err=%v", localFilePath, err)
 				} else {
-					glog.Infof("configMap file changed,write to realFilePath=%s", realFilePath)
+					glog.Infof("configMap file changed,write to localFilePath=%s", localFilePath)
 					canNginxReload = true
 				}
 			} else {
-				glog.Infof("configMap file is the same as realFilePath=%s", realFilePath)
+				glog.Infof("configMap file is the same as localFilePath=%s", localFilePath)
 			}
 		}
+	}
 
-		if canNginxReload {
-			cmd := exec.Command("nginx", "-s", "reload")
-			_, err := cmd.Output()
-			if err != nil {
-				glog.Errorf("nginx reload err=%v", err)
-			}
-		}
+	if canNginxReload {
+		reloadNginx()
+	}
+}
+
+func reloadNginx() {
+	test := exec.Command("/bin/sh", "-c", "nginx -t")
+	testResult, testErr := test.CombinedOutput()
+	if testErr != nil {
+		glog.Errorf("nginx -t err=%v", testErr)
+	}
+	glog.Infof("nginx -t result=%s", testResult)
+	if !strings.Contains(string(testResult), "successful") {
+		return
+	}
+	reload := exec.Command("/bin/sh", "-c", "nginx -s reload")
+	reloadResult, err := reload.CombinedOutput()
+	glog.Infof("nginx -s reload result=%s", reloadResult)
+	if err != nil {
+		glog.Errorf("nginx -s reload err=%v", err)
 	}
 }
 

@@ -17,8 +17,11 @@ func main() {
 	} else {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
-	defaultConfig := "nginx-site:/etc/nginx/conf-site.d,nginx-upstream:/etc/nginx/conf-upstream.d"
-	configmap2file := flag.String("configmap2file", defaultConfig, "configMap:directory, eg:"+defaultConfig)
+	defaultConfig :=
+		"nginx-site:/etc/nginx/conf-site.d" +
+			",nginx-upstream:/etc/nginx/conf-upstream.d" +
+			",nginx-ssl:/etc/nginx/conf-ssl.d"
+	configmap2local := flag.String("configmap2local", defaultConfig, "configMap:localDir, eg:"+defaultConfig)
 
 	flag.Parse()
 
@@ -34,7 +37,7 @@ func main() {
 		panic(err.Error())
 	}
 
-	nginx.SyncConfigMapToDirectory(clientset,configmap2file)
+	nginx.SyncConfigMapToLocalDir(clientset,configmap2local)
 
 
 	var wg sync.WaitGroup

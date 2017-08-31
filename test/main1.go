@@ -16,5 +16,6 @@ func main() {
 	// 最后给已声明的map赋值
 	m1["a"] = "aa"
 	m1["b"] = "bb"
-	fmt.Printf(">%s<",m1["c"])
+	fmt.Printf(">%s<\n",m1["c"])
+	fmt.Printf(">%d<\n",len(m1["c"]))
 }
