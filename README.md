@@ -39,7 +39,7 @@ watch configMap=nginx-site,directory=/etc/nginx/conf-site.d
 
 # attention
 suggest file encoding=base64 , becauseof kubernetes.client-go ConfigMap's value is string 
-openssl rand -base64 48 > ssl_session_ticket.key
+`openssl rand -base64 48 > ssl_session_ticket.key`
 
 # Usage of ./nginx-controller:
 ```
