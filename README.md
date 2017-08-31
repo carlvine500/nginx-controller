@@ -38,17 +38,17 @@ watch configMap=nginx-site,directory=/etc/nginx/conf-site.d
 ```
 
 # attention
-suggest file encoding=base64 , becauseof kubernetes.client-go ConfigMap's value is string 
-`openssl rand -base64 48 > ssl_session_ticket.key`
+- suggest file encoding=base64 , becauseof kubernetes.client-go ConfigMap's value is string 
+- `openssl rand -base64 48 > ssl_session_ticket.key`
 
 # Usage of ./nginx-controller:
 ```
   -alsologtostderr
         log to standard error as well as files
-  -configmap2file string
-        configMap:directory, eg:nginx-site:/etc/nginx/conf-site.d,nginx-upstream:/etc/nginx/conf-upstream.d (default "nginx-site:/etc/nginx/conf-site.d,nginx-upstream:/etc/nginx/conf-upstream.d")
+  -configmap2local string
+        configMap:localDir, eg:nginx-site:/etc/nginx/conf-site.d,nginx-upstream:/etc/nginx/conf-upstream.d,nginx-ssl:/etc/nginx/conf-ssl.d (default "nginx-site:/etc/nginx/conf-site.d,nginx-upstream:/etc/nginx/conf-upstream.d,nginx-ssl:/etc/nginx/conf-ssl.d")
   -kubeconfig string
-        (optional) absolute path to the kubeconfig file (default "/root/.kube/config")
+        (optional) absolute path to the kubeconfig file (default "/Users/tingfeng/.kube/config")
   -log_backtrace_at value
         when logging hits line file:N, emit a stack trace
   -log_dir string
@@ -61,4 +61,5 @@ suggest file encoding=base64 , becauseof kubernetes.client-go ConfigMap's value 
         log level for V logs
   -vmodule value
         comma-separated list of pattern=N settings for file-filtered logging
+
 ```
