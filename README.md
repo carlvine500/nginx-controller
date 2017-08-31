@@ -2,7 +2,8 @@
 sychromize nginx config file by kubernetes.configMap,and reload nginx when files changed
 - step1: upload nginx config files to configMap by kubectl
 - step2: nginx-controller will listen to configMap, and download nginx config files to local directory
-- step3: reload nginx when files changed
+- step3: test and reload nginx when files changed
+- note: file host_time(`hostname` `date`) in any directory, used for force reload current docker's nginx
 
 # build
 - linux `GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build`
@@ -22,6 +23,7 @@ $tree
 └── publish.sh
 
 $cat publish.sh #copy files to configMap
+echo `hostname` `date` | tee ./conf-site.d/host_time
 kubectl create configmap nginx-ssl --from-file ./conf-ssl.d -o yaml --dry-run | kubectl apply -f -
 kubectl create configmap nginx-upstream --from-file ./conf-upstream.d -o yaml --dry-run | kubectl apply -f -
 kubectl create configmap nginx-site --from-file ./conf-site.d -o yaml --dry-run | kubectl apply -f -
