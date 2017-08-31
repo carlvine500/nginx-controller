@@ -1,4 +1,8 @@
 # nginx-controller
+sychromize nginx config file by kubernetes.configMap,and reload nginx when files changed
+- step1: upload nginx config files to configMap by kubectl
+- step2: nginx-controller will listen to configMap, and download nginx config files to local directory
+- step3: reload nginx when files changed
 
 # build
 - linux `GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build`
@@ -17,7 +21,7 @@ $tree
 │   └── b.conf
 └── publish.sh
 
-$cat publish.sh
+$cat publish.sh #copy files to configMap
 kubectl create configmap nginx-site --from-file ./conf-site.d -o yaml --dry-run | kubectl apply -f -
 kubectl create configmap nginx-upstream --from-file ./conf-upstream.d -o yaml --dry-run | kubectl apply -f -
 kubectl create configmap nginx-ssl --from-file ./conf-ssl.d -o yaml --dry-run | kubectl apply -f -
@@ -27,7 +31,7 @@ nginx-site       2         1d
 nginx-ssl        1         28s
 nginx-upstream   2         14h
 
-$./nginx-controller #will synchronize configmap to local directory as the source file
+$./nginx-controller #download file to local directory
 watch configMap=nginx-upstream,directory=/etc/nginx/conf-upstream.d 
 watch configMap=nginx-site,directory=/etc/nginx/conf-site.d 
 watch configMap=nginx-ssl,directory=/etc/nginx/conf-ssl.d 
