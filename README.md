@@ -22,9 +22,9 @@ $tree
 └── publish.sh
 
 $cat publish.sh #copy files to configMap
-kubectl create configmap nginx-site --from-file ./conf-site.d -o yaml --dry-run | kubectl apply -f -
-kubectl create configmap nginx-upstream --from-file ./conf-upstream.d -o yaml --dry-run | kubectl apply -f -
 kubectl create configmap nginx-ssl --from-file ./conf-ssl.d -o yaml --dry-run | kubectl apply -f -
+kubectl create configmap nginx-upstream --from-file ./conf-upstream.d -o yaml --dry-run | kubectl apply -f -
+kubectl create configmap nginx-site --from-file ./conf-site.d -o yaml --dry-run | kubectl apply -f -
 
 $kubectl get configmap 
 nginx-site       2         1d
@@ -32,10 +32,11 @@ nginx-ssl        1         28s
 nginx-upstream   2         14h
 
 $./nginx-controller #download file to local directory
+watch configMap=nginx-ssl,directory=/etc/nginx/conf-ssl.d 
 watch configMap=nginx-upstream,directory=/etc/nginx/conf-upstream.d 
 watch configMap=nginx-site,directory=/etc/nginx/conf-site.d 
-watch configMap=nginx-ssl,directory=/etc/nginx/conf-ssl.d 
 ```
+
 # attention
 suggest file encoding=base64 , becauseof kubernetes.client-go ConfigMap's value is string 
 openssl rand -base64 48 > ssl_session_ticket.key
