@@ -1,9 +1,9 @@
 # nginx-controller
-sychromize nginx config file by kubernetes.configMap,and reload nginx when files changed
+sychromize nginx config file by kubernetes.configMap,and reload nginx when file(hostname_date) changed
 - step1: upload nginx config files to configMap by kubectl
 - step2: nginx-controller will listen to configMap, and download nginx config files to local directory
 - step3: test and reload nginx when files changed
-- note: file "hostname_date" in any directory, used for force reload current hostname's nginx
+- note: the file "hostname_date" in any directory, used for force reload nginx
 
 # build
 - linux `GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build`
