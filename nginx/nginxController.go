@@ -51,10 +51,7 @@ func watchConfigMap(clientset *kubernetes.Clientset, configMapName string, local
 }
 
 func syncFile(configMap v1.ConfigMap, localDir string) {
-	// sleep random seconds to avoid global performance effect
-	time.Sleep(time.Duration(rand.Intn(3)) * time.Second)
 	hostname, _ := os.Hostname()
-
 	canNginxReload := false
 	localFileList, err := ioutil.ReadDir(localDir)
 	if err != nil {
@@ -72,16 +69,22 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 		localFilePath := localDir + "/" + fileName;
 		newData := []byte( fileContent)
 
-		if strings.Compare(fileName, "hostname_date") == 0 && strings.Contains(fileContent, hostname) {
-			canNginxReload = true
+		if strings.Compare(fileName, "hostname_date") == 0 {
+			if strings.Contains(fileContent, hostname) {
+				canNginxReload = true
+			}
+			oldData, _ := ioutil.ReadFile(localFilePath)
+			if !bytes.Equal(oldData, newData) {
+				canNginxReload = true
+			}
 		}
+
 		if !PathExists(localFilePath) {
 			err := ioutil.WriteFile(localFilePath, newData, 0644)
 			if err != nil {
 				glog.Errorf("fist time write fail, localFilePath =%s,err=%v", localFilePath, err)
 			} else {
 				glog.Infof("fist time write localFilePath =%s", localFilePath)
-				// canNginxReload = true
 			}
 		} else {
 			oldData, err := ioutil.ReadFile(localFilePath)
@@ -94,7 +97,6 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 					glog.Errorf("configMap file changed,but write fail, localFilePath=%s,err=%v", localFilePath, err)
 				} else {
 					glog.Infof("configMap file changed,write to localFilePath=%s", localFilePath)
-					// canNginxReload = true
 				}
 			} else {
 				glog.Infof("configMap file is the same as localFilePath=%s", localFilePath)
@@ -108,6 +110,8 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 }
 
 func reloadNginx() {
+	// sleep random seconds to avoid global performance effect
+	time.Sleep(1 + time.Duration(rand.Intn(3))*time.Second)
 	test := exec.Command("/bin/sh", "-c", "nginx -t")
 	testResult, testErr := test.CombinedOutput()
 	if testErr != nil {

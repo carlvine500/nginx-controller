@@ -9,11 +9,14 @@ import (
 	//"io/ioutil"
 	"fmt"
 
-	"strings"
+	//"strings"
+	"bytes"
+	"io/ioutil"
 )
 
 func main() {
-	fmt.Print(strings.Compare("hostname","hostname"))
+	re,_:=ioutil.ReadFile("/tmp/abc")
+	fmt.Print(bytes.Equal([]byte("hostname"),re))
 	//for i := 0; i < 10; i++ {
 	//	t := 3 + rand.Intn(3)
 	//	time.Sleep(time.Duration(t) * time.Second)
