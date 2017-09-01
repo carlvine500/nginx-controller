@@ -36,9 +36,10 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
+	//re, _ := clientset.CoreV1().Namespaces().List(metav1.ListOptions{})
+	//fmt.Printf("namespaces=%v",re)
 
-	nginx.SyncConfigMapToLocalDir(clientset,configmap2local)
-
+	nginx.SyncConfigMapToLocalDir(clientset, configmap2local)
 
 	var wg sync.WaitGroup
 	wg.Add(1)

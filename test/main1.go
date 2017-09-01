@@ -5,17 +5,28 @@ import (
 	// _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	//"os"
 
+	"os/exec"
 	"fmt"
+	//"strings"
+	//"io/ioutil"
 )
 
 func main() {
-	// 先声明map
-	var m1 map[string]string
-	// 再使用make函数创建一个非nil的map，nil map不能赋值
-	m1 = make(map[string]string)
-	// 最后给已声明的map赋值
-	m1["a"] = "aa"
-	m1["b"] = "bb"
-	fmt.Printf(">%s<\n",m1["c"])
-	fmt.Printf(">%d<\n",len(m1["c"]))
+	//cmd := exec.Command("/bin/sh","-c","nginx -s reload")
+	cmd := exec.Command("/bin/sh","-c","nginx -t")
+	re, err := cmd.CombinedOutput()
+	//stdout, err := cmd.StdoutPipe()
+	//bytes, err := ioutil.ReadAll(stdout)
+	//fmt.Printf("result=%v\n",bytes)
+	//if err != nil {
+	//	fmt.Println("ReadAll stdout: ", err.Error())
+	//	//return
+	//}
+	//successful
+	//if strings.Contains(string(re),"CONTAINER"){
+	//	fmt.Printf("CONTAINER\n")
+	//}
+	fmt.Printf("result=%s\n",re)
+	fmt.Printf("err=%v\n",err)
+
 }

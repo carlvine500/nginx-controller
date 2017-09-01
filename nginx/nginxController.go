@@ -12,6 +12,8 @@ import (
 	"bytes"
 	"strings"
 	"os/exec"
+	"time"
+	"math/rand"
 )
 
 func SyncConfigMapToLocalDir(clientset *kubernetes.Clientset, configmap2local *string) {
@@ -21,7 +23,7 @@ func SyncConfigMapToLocalDir(clientset *kubernetes.Clientset, configmap2local *s
 		pairs := strings.Split(v, ":")
 		configMapName := pairs[0];
 		localDir := pairs[1];
-		if (!PathExists(localDir)) {
+		if !PathExists(localDir) {
 			err := os.MkdirAll(localDir, 0777)
 			if err != nil {
 				panic(err.Error())
@@ -49,6 +51,10 @@ func watchConfigMap(clientset *kubernetes.Clientset, configMapName string, local
 }
 
 func syncFile(configMap v1.ConfigMap, localDir string) {
+	// sleep random seconds to avoid global performance effect
+	time.Sleep(time.Duration(rand.Intn(3)) * time.Second)
+	hostname, _ := os.Hostname()
+
 	canNginxReload := false
 	localFileList, err := ioutil.ReadDir(localDir)
 	if err != nil {
@@ -59,19 +65,23 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 			localFilePath := localDir + "/" + fileInfo.Name();
 			glog.Infof("remove localFilePath =%s", localFilePath)
 			os.Remove(localFilePath)
-			canNginxReload = true
+			// canNginxReload = true
 		}
 	}
 	for fileName, fileContent := range configMap.Data {
 		localFilePath := localDir + "/" + fileName;
 		newData := []byte( fileContent)
+
+		if strings.Compare(fileName, "hostname_date") == 0 && strings.Contains(fileContent, hostname) {
+			canNginxReload = true
+		}
 		if !PathExists(localFilePath) {
 			err := ioutil.WriteFile(localFilePath, newData, 0644)
 			if err != nil {
 				glog.Errorf("fist time write fail, localFilePath =%s,err=%v", localFilePath, err)
 			} else {
 				glog.Infof("fist time write localFilePath =%s", localFilePath)
-				canNginxReload = true
+				// canNginxReload = true
 			}
 		} else {
 			oldData, err := ioutil.ReadFile(localFilePath)
@@ -84,7 +94,7 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 					glog.Errorf("configMap file changed,but write fail, localFilePath=%s,err=%v", localFilePath, err)
 				} else {
 					glog.Infof("configMap file changed,write to localFilePath=%s", localFilePath)
-					canNginxReload = true
+					// canNginxReload = true
 				}
 			} else {
 				glog.Infof("configMap file is the same as localFilePath=%s", localFilePath)

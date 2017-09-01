@@ -5,28 +5,21 @@ import (
 	// _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	//"os"
 
-	"os/exec"
-	"fmt"
 	//"strings"
 	//"io/ioutil"
+	"fmt"
+
+	"strings"
 )
 
 func main() {
-	//cmd := exec.Command("/bin/sh","-c","nginx -s reload")
-	cmd := exec.Command("/bin/sh","-c","nginx -t")
-	re, err := cmd.CombinedOutput()
-	//stdout, err := cmd.StdoutPipe()
-	//bytes, err := ioutil.ReadAll(stdout)
-	//fmt.Printf("result=%v\n",bytes)
-	//if err != nil {
-	//	fmt.Println("ReadAll stdout: ", err.Error())
-	//	//return
+	fmt.Print(strings.Compare("hostname","hostname"))
+	//for i := 0; i < 10; i++ {
+	//	t := 3 + rand.Intn(3)
+	//	time.Sleep(time.Duration(t) * time.Second)
+	//	fmt.Println(t)
+	//
+	//
 	//}
-	//successful
-	//if strings.Contains(string(re),"CONTAINER"){
-	//	fmt.Printf("CONTAINER\n")
-	//}
-	fmt.Printf("result=%s\n",re)
-	fmt.Printf("err=%v\n",err)
 
 }
