@@ -22,7 +22,7 @@ $tree
 │   └── b.conf
 └── publish.sh
 
-$cat publish.sh #copy files to configMap
+$cat publish.sh #copy files to configMap,update file hostname_date
 echo `hostname` `date` | tee ./conf-site.d/hostname_date
 kubectl create configmap nginx-ssl --from-file ./conf-ssl.d -o yaml --dry-run | kubectl apply -f -
 kubectl create configmap nginx-upstream --from-file ./conf-upstream.d -o yaml --dry-run | kubectl apply -f -
@@ -33,7 +33,7 @@ nginx-site       2         1d
 nginx-ssl        1         28s
 nginx-upstream   2         14h
 
-$./nginx-controller #download file to local directory
+$./nginx-controller #download file to local directory,reload nginx when hostname_date updated
 watch configMap=nginx-ssl,directory=/etc/nginx/conf-ssl.d 
 watch configMap=nginx-upstream,directory=/etc/nginx/conf-upstream.d 
 watch configMap=nginx-site,directory=/etc/nginx/conf-site.d 
