@@ -47,6 +47,8 @@ func watchConfigMap(clientset *kubernetes.Clientset, configMapName string, local
 				v := reflect.ValueOf(e.Object)
 				configMap, _ := v.Elem().Interface().(v1.ConfigMap)
 				syncFile(configMap, localDir)
+			} else {
+				glog.Infof("watch empty event,configMap=%s,localDir=%s", configMapName, localDir)
 			}
 		}
 	}
