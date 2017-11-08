@@ -43,9 +43,11 @@ func watchConfigMap(clientset *kubernetes.Clientset, configMapName string, local
 	for {
 		select {
 		case e := <-c:
-			v := reflect.ValueOf(e.Object)
-			configMap, _ := v.Elem().Interface().(v1.ConfigMap)
-			syncFile(configMap, localDir)
+			if e.Object != nil {
+				v := reflect.ValueOf(e.Object)
+				configMap, _ := v.Elem().Interface().(v1.ConfigMap)
+				syncFile(configMap, localDir)
+			}
 		}
 	}
 }
