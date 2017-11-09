@@ -16,6 +16,10 @@ import (
 	"math/rand"
 )
 
+func init() {
+	glog.MaxSize = 1024 * 1024 * 200;
+}
+
 func SyncConfigMapToLocalDir(clientset *kubernetes.Clientset, configmap2local *string) {
 	glog.Infof("--configmap2local=%s", *configmap2local)
 	configmap2locals := strings.Split(*configmap2local, ",")
@@ -29,9 +33,17 @@ func SyncConfigMapToLocalDir(clientset *kubernetes.Clientset, configmap2local *s
 				panic(err.Error())
 			}
 		}
-		go watchConfigMap(clientset, configMapName, localDir);
+		go watchConfigMap2(clientset, configMapName, localDir);
 	}
 }
+
+
+func watchConfigMap2(clientset *kubernetes.Clientset, configMapName string, localDir string) {
+	for {
+		watchConfigMap(clientset, configMapName, localDir);
+	}
+}
+
 
 func watchConfigMap(clientset *kubernetes.Clientset, configMapName string, localDir string) {
 	watcher, whErr := clientset.CoreV1().ConfigMaps("default").Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", configMapName).String()})
@@ -40,15 +52,19 @@ func watchConfigMap(clientset *kubernetes.Clientset, configMapName string, local
 	}
 	glog.Infof("watch configMap=%s,localDir=%s", configMapName, localDir)
 	c := watcher.ResultChan()
+	ForEnd:
 	for {
 		select {
 		case e := <-c:
+			// TODO e.Object == nil 量非常大导致cpu过高,日志磁盘占用过多
 			if e.Object != nil {
 				v := reflect.ValueOf(e.Object)
 				configMap, _ := v.Elem().Interface().(v1.ConfigMap)
 				syncFile(configMap, localDir)
 			} else {
-				glog.Infof("watch empty event,configMap=%s,localDir=%s", configMapName, localDir)
+				glog.Infof("watch empty event,configMap=%s,localDir=%s,eventType=%v", configMapName, localDir, e.Type)
+				watcher.Stop()
+				break ForEnd
 			}
 		}
 	}
