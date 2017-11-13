@@ -27,6 +27,7 @@ echo `hostname` `date` | sudo  tee /etc/nginx/conf-site.d/hostname_date
 kubectl create configmap nginx-ssl --from-file /etc/nginx/conf-ssl.d -o yaml --dry-run | kubectl apply -f -
 kubectl create configmap nginx-upstream --from-file /etc/nginx/conf-upstream.d -o yaml --dry-run | kubectl apply -f -
 kubectl create configmap nginx-site --from-file /etc/nginx/conf-site.d -o yaml --dry-run | kubectl apply -f -
+tail -f /var/log/nginx/nginx-controller.*
 
 $kubectl get configmap 
 nginx-site       2         1d
