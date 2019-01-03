@@ -46,9 +46,15 @@ func watchConfigMap2(clientset *kubernetes.Clientset, configMapName string, loca
 
 
 func watchConfigMap(clientset *kubernetes.Clientset, configMapName string, localDir string) {
+	defer func() {
+		if err := recover(); err != nil {
+			glog.Errorf("Unknow Error[E],err=%v,configMapName=%s,localDir=%s", err, configMapName, localDir)
+		}
+	}()
 	watcher, whErr := clientset.CoreV1().ConfigMaps("default").Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", configMapName).String()})
 	if whErr != nil {
 		print(whErr)
+		return
 	}
 	glog.Infof("watch configMap=%s,localDir=%s", configMapName, localDir)
 	c := watcher.ResultChan()
