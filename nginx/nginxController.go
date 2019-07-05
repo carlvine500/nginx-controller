@@ -83,11 +83,20 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 	if err != nil {
 		glog.Errorf("readDir fail, localDir=%s,err=%v", localDir, err)
 	}
+
+	tmpDir := localDir + "/tmp"
+	_, err2 := os.Stat(tmpDir)
+	if os.IsNotExist(err2) {
+		os.Mkdir(tmpDir, os.ModePerm)
+	}
+
 	for _, fileInfo := range localFileList {
 		if _, localFileExists := configMap.Data[fileInfo.Name()]; !localFileExists {
 			localFilePath := localDir + "/" + fileInfo.Name();
-			glog.Infof("remove localFilePath =%s", localFilePath)
-			os.Remove(localFilePath)
+			tmpFilePath := tmpDir + "/" + fileInfo.Name()
+			glog.Infof("mv localFilePath to %s", tmpFilePath)
+			// os.Remove(localFilePath)
+			os.Rename(localFilePath, tmpFilePath)
 			// canNginxReload = true
 		}
 	}

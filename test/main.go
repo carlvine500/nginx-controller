@@ -8,10 +8,10 @@ import (
 	//"strings"
 	//"io/ioutil"
 	"fmt"
-
 	//"strings"
 	"bytes"
 	"io/ioutil"
+	"os"
 )
 
 func main() {
@@ -24,5 +24,10 @@ func main() {
 	//
 	//
 	//}
-
+	_, err := os.Stat("/Users/tingfeng/work/golang/tmp")
+	if os.IsNotExist(err) {
+		os.Mkdir("/Users/tingfeng/work/golang/tmp", os.ModePerm)
+	}
+	err1 := os.Rename("/Users/tingfeng/work/golang/a", "/Users/tingfeng/work/golang/tmp/a")
+	fmt.Print(err1)
 }
