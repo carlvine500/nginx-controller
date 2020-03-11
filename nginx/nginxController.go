@@ -63,6 +63,8 @@ func watchConfigMap(clientset *kubernetes.Clientset, configMapName string, local
 		select {
 		case e := <-c:
 			// TODO e.Object == nil 量非常大导致cpu过高,日志磁盘占用过多
+			// bug: https://github.com/kubernetes/client-go/issues/334
+			// TODO dev nginx好了换一种写法：https://github.com/kubernetes/client-go/issues/547
 			if e.Object != nil {
 				v := reflect.ValueOf(e.Object)
 				configMap, _ := v.Elem().Interface().(v1.ConfigMap)

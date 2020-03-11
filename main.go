@@ -20,7 +20,8 @@ func main() {
 	defaultConfig :=
 		"nginx-site:/etc/nginx/conf-site.d" +
 			",nginx-upstream:/etc/nginx/conf-upstream.d" +
-			",nginx-ssl:/etc/nginx/conf-ssl.d"
+			",nginx-ssl:/etc/nginx/conf-ssl.d"+
+			",nginx-socks:/etc/nginx/conf-socks.d"
 	configmap2local := flag.String("configmap2local", defaultConfig, "configMap:localDir, eg:"+defaultConfig)
 
 	flag.Parse()
