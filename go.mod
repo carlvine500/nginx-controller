@@ -16,21 +16,22 @@ require (
 	github.com/go-openapi/loads v0.0.0-20160704185440-18441dfa706d
 	github.com/go-openapi/spec v0.0.0-20160808142527-6aced65f8501
 	github.com/go-openapi/swag v0.0.0-20160704191624-1d0bd113de87
-	github.com/gogo/protobuf v0.0.0-20171007142547-342cbe0a0415
+	github.com/gogo/protobuf v1.3.1
 	github.com/golang/glog v0.0.0-20141105023935-44145f04b68c
-	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
+	github.com/google/gofuzz v1.1.0
 	github.com/howeyc/gopass v0.0.0-20170109162249-bf9dde6d0d2c
 	github.com/imdario/mergo v0.3.5
 	github.com/juju/ratelimit v0.0.0-20170523012141-5b9ff8664717
 	github.com/mailru/easyjson v0.0.0-20160728113105-d5b7844b561a
-	github.com/spf13/pflag v1.0.1
+	github.com/spf13/pflag v1.0.5
 	github.com/ugorji/go v0.0.0-20170107133203-ded73eae5db7
-	golang.org/x/crypto v0.0.0-20181025213731-e84da0312774
-	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
-	golang.org/x/sys v0.0.0-20190312061237-fead79001313
-	golang.org/x/text v0.3.1-0.20181227161524-e6919f6577db
-	gopkg.in/inf.v0 v0.9.0
+	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
+	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
+	golang.org/x/sys v0.0.0-20191022100944-742c48ecaeb7
+	golang.org/x/text v0.3.2
+	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v2 v2.2.8
+	k8s.io/api v0.15.12
 	k8s.io/apimachinery v0.15.12
 	k8s.io/client-go v0.15.12
 )
