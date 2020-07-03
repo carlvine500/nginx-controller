@@ -1,23 +1,25 @@
 package nginx
 
 import (
-	"os"
 	"github.com/golang/glog"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"reflect"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/client-go/pkg/api/v1"
-	"io/ioutil"
+	"os"
+	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"bytes"
-	"strings"
-	"os/exec"
-	"time"
+	"io/ioutil"
+	av1 "k8s.io/api/admissionregistration/v1"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/client-go/kubernetes"
 	"math/rand"
+	"os/exec"
+	"reflect"
+	"strings"
+	"time"
 )
 
 func init() {
-	glog.MaxSize = 1024 * 1024 * 200;
+	glog.MaxSize = 1024 * 1024 * 200
 }
 
 func SyncConfigMapToLocalDir(clientset *kubernetes.Clientset, configmap2local *string) {
@@ -25,25 +27,23 @@ func SyncConfigMapToLocalDir(clientset *kubernetes.Clientset, configmap2local *s
 	configmap2locals := strings.Split(*configmap2local, ",")
 	for _, v := range configmap2locals {
 		pairs := strings.Split(v, ":")
-		configMapName := pairs[0];
-		localDir := pairs[1];
+		configMapName := pairs[0]
+		localDir := pairs[1]
 		if !PathExists(localDir) {
 			err := os.MkdirAll(localDir, 0777)
 			if err != nil {
 				panic(err.Error())
 			}
 		}
-		go watchConfigMap2(clientset, configMapName, localDir);
+		go watchConfigMap2(clientset, configMapName, localDir)
 	}
 }
-
 
 func watchConfigMap2(clientset *kubernetes.Clientset, configMapName string, localDir string) {
 	for {
-		watchConfigMap(clientset, configMapName, localDir);
+		watchConfigMap(clientset, configMapName, localDir)
 	}
 }
-
 
 func watchConfigMap(clientset *kubernetes.Clientset, configMapName string, localDir string) {
 	defer func() {
@@ -51,14 +51,15 @@ func watchConfigMap(clientset *kubernetes.Clientset, configMapName string, local
 			glog.Errorf("Unknow Error[E],err=%v,configMapName=%s,localDir=%s", err, configMapName, localDir)
 		}
 	}()
-	watcher, whErr := clientset.CoreV1().ConfigMaps("default").Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", configMapName).String()})
+	options := metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", configMapName).String()}
+	watcher, whErr := clientset.CoreV1().ConfigMaps("default").Watch(options)
 	if whErr != nil {
 		print(whErr)
 		return
 	}
 	glog.Infof("watch configMap=%s,localDir=%s", configMapName, localDir)
 	c := watcher.ResultChan()
-	ForEnd:
+ForEnd:
 	for {
 		select {
 		case e := <-c:
@@ -94,7 +95,7 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 
 	for _, fileInfo := range localFileList {
 		if _, localFileExists := configMap.Data[fileInfo.Name()]; !localFileExists {
-			localFilePath := localDir + "/" + fileInfo.Name();
+			localFilePath := localDir + "/" + fileInfo.Name()
 			tmpFilePath := tmpDir + "/" + fileInfo.Name()
 			glog.Infof("mv localFilePath to %s", tmpFilePath)
 			// os.Remove(localFilePath)
@@ -103,8 +104,8 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 		}
 	}
 	for fileName, fileContent := range configMap.Data {
-		localFilePath := localDir + "/" + fileName;
-		newData := []byte( fileContent)
+		localFilePath := localDir + "/" + fileName
+		newData := []byte(fileContent)
 
 		if strings.Compare(fileName, "hostname_date") == 0 {
 			if strings.Contains(fileContent, hostname) {
@@ -170,7 +171,7 @@ func typeof(v interface{}) string {
 	return reflect.TypeOf(v).String()
 }
 
-func PathExists(path string) (bool) {
+func PathExists(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {
 		return true
