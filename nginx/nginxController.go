@@ -6,7 +6,7 @@ import (
 	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"bytes"
 	"io/ioutil"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/kubernetes"
@@ -86,6 +86,16 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 		glog.Errorf("readDir fail, localDir=%s,err=%v", localDir, err)
 	}
 
+	//ignore override source host nginx config
+	value_of_hostname_date,fileExists:= configMap.Data["hostname_date"];
+	if !fileExists {
+		return
+	}
+	if strings.Contains(value_of_hostname_date, hostname) {
+		reloadNginx()
+		return
+	}
+
 	tmpDir := localDir + "/tmp"
 	_, err2 := os.Stat(tmpDir)
 	if os.IsNotExist(err2) {
@@ -107,9 +117,9 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 		newData := []byte(fileContent)
 
 		if strings.Compare(fileName, "hostname_date") == 0 {
-			if strings.Contains(fileContent, hostname) {
-				canNginxReload = true
-			}
+			//if strings.Contains(fileContent, hostname) {
+			//	canNginxReload = true
+			//}
 			oldData, _ := ioutil.ReadFile(localFilePath)
 			if !bytes.Equal(oldData, newData) {
 				canNginxReload = true
