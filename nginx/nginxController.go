@@ -3,6 +3,8 @@ package nginx
 import (
 	"github.com/golang/glog"
 	"os"
+	"regexp"
+
 	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"bytes"
 	"io/ioutil"
@@ -93,18 +95,25 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 	}
 
 	oldValueOfHostnameDate, _ := ioutil.ReadFile(localDir+"/"+"hostname_date")
+	//hostname who upload configMap reload in n minutes
+	if strings.Contains(valueOfHostnameDate, hostname) {
+		flysnowRegexp := regexp.MustCompile(`\d+:\d+:\d+`)
+		params := flysnowRegexp.FindStringSubmatch(valueOfHostnameDate)
+		if len(params) == 0 {
+			glog.Infof("error content of hostname_date %s", valueOfHostnameDate)
+			return;
+		}
+		if subMinutesFromNow(params[0]) < 3 {
+			reloadNginx()
+		}
+		return
+	}
 	if strings.Compare(valueOfHostnameDate, string(oldValueOfHostnameDate)) == 0 {
 		//canNginxReload = true
 		return
 	}
 
-	//hostname who upload configMap just reload without override config
-	if  strings.Contains(valueOfHostnameDate, hostname) {
-		//if canNginxReload{
-		reloadNginx()
-		//}
-		return
-	}
+
 
 	tmpDir := localDir + "/tmp"
 	_, err2 := os.Stat(tmpDir)
@@ -192,4 +201,20 @@ func PathExists(path string) bool {
 		return false
 	}
 	return false
+}
+
+func subMinutesFromNow(hourMinuteSecond string) (float64) {
+	now := time.Now()
+	format := "2006-01-02 15:04:05"
+
+	nowString := now.Format(format)
+	yearMonthDay := now.Format("2006-01-02")
+
+	nowUTC, _ := time.Parse(format, nowString)
+	fileTime, _ := time.Parse(format, yearMonthDay+" "+hourMinuteSecond)
+
+	glog.Errorf("nowUTC=%v", nowUTC)
+	glog.Errorf("fileTime=%v", fileTime)
+	minutes := nowUTC.Sub(fileTime).Minutes()
+	return minutes
 }
