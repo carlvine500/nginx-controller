@@ -80,19 +80,29 @@ ForEnd:
 
 func syncFile(configMap v1.ConfigMap, localDir string) {
 	hostname, _ := os.Hostname()
-	canNginxReload := false
+	//canNginxReload := false
 	localFileList, err := ioutil.ReadDir(localDir)
 	if err != nil {
 		glog.Errorf("readDir fail, localDir=%s,err=%v", localDir, err)
 	}
 
 	//ignore override source host nginx config
-	value_of_hostname_date,fileExists:= configMap.Data["hostname_date"];
+	valueOfHostnameDate,fileExists:= configMap.Data["hostname_date"];
 	if !fileExists {
 		return
 	}
-	if strings.Contains(value_of_hostname_date, hostname) {
+
+	oldValueOfHostnameDate, _ := ioutil.ReadFile(localDir+"/"+"hostname_date")
+	if strings.Compare(valueOfHostnameDate, string(oldValueOfHostnameDate)) == 0 {
+		//canNginxReload = true
+		return
+	}
+
+	//hostname who upload configMap just reload without override config
+	if  strings.Contains(valueOfHostnameDate, hostname) {
+		//if canNginxReload{
 		reloadNginx()
+		//}
 		return
 	}
 
@@ -102,6 +112,7 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 		os.Mkdir(tmpDir, os.ModePerm)
 	}
 
+	// don't delete config,mv it to tmp/ directory
 	for _, fileInfo := range localFileList {
 		if _, localFileExists := configMap.Data[fileInfo.Name()]; !localFileExists {
 			localFilePath := localDir + "/" + fileInfo.Name()
@@ -112,19 +123,11 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 			// canNginxReload = true
 		}
 	}
+
+	// override local config from configMap
 	for fileName, fileContent := range configMap.Data {
 		localFilePath := localDir + "/" + fileName
 		newData := []byte(fileContent)
-
-		if strings.Compare(fileName, "hostname_date") == 0 {
-			//if strings.Contains(fileContent, hostname) {
-			//	canNginxReload = true
-			//}
-			oldData, _ := ioutil.ReadFile(localFilePath)
-			if !bytes.Equal(oldData, newData) {
-				canNginxReload = true
-			}
-		}
 
 		if !PathExists(localFilePath) {
 			err := ioutil.WriteFile(localFilePath, newData, 0644)
@@ -151,9 +154,9 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 		}
 	}
 
-	if canNginxReload {
-		reloadNginx()
-	}
+	//if canNginxReload {
+	reloadNginx()
+	//}
 }
 
 func reloadNginx() {
