@@ -2,16 +2,23 @@ package main
 
 import (
 	"flag"
+	"k8s.io/client-go/rest"
 	"os"
 	"path/filepath"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"sync"
 	"github.com/carlvine500/nginx-controller/nginx"
+	"github.com/sirupsen/logrus"
+)
+
+var (
+	kubeconfig *string
+	config *rest.Config
 )
 
 func main() {
-	var kubeconfig *string
+	var err error
 	if home := homeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
@@ -27,7 +34,10 @@ func main() {
 	flag.Parse()
 
 	// use the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	if config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig); err != nil{
+		logrus.Errorf("build config failed %s, try use inclusterConfig", err)
+		config,err = rest.InClusterConfig()
+	}
 	if err != nil {
 		panic(err.Error())
 	}
