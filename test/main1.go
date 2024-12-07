@@ -5,13 +5,13 @@ import (
 	// _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	//"os"
 
-	"os/exec"
 	"fmt"
+	"os/exec"
 	//"strings"
 	//"io/ioutil"
 )
 
-func main() {
+func main2() {
 	//cmd := exec.Command("/bin/sh","-c","nginx -s reload")
 	cmd := exec.Command("/bin/sh","-c","nginx -t")
 	re, err := cmd.CombinedOutput()

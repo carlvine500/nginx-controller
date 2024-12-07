@@ -2,12 +2,12 @@ package main
 
 import (
 	"flag"
-	"os"
-	"path/filepath"
+	"github.com/carlvine500/nginx-controller/nginx"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"os"
+	"path/filepath"
 	"sync"
-	"github.com/carlvine500/nginx-controller/nginx"
 )
 
 func main() {
@@ -29,13 +29,13 @@ func main() {
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
-		panic(err.Error())
+		panic(any(err.Error()))
 	}
 
 	// create the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		panic(any(err.Error()))
 	}
 	//re, _ := clientset.CoreV1().Namespaces().List(metav1.ListOptions{})
 	//fmt.Printf("namespaces=%v",re)

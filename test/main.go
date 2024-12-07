@@ -2,11 +2,11 @@ package main
 
 import (
 	"golang.org/x/exp/errors/fmt"
-	"regexp"
+	"strings"
 	"time"
 )
 
-func main() {
+func main1() {
 	//re,_:=ioutil.ReadFile("/tmp/abc")
 	//fmt.Print(bytes.Equal([]byte("hostname"),re))
 	//for i := 0; i < 10; i++ {
@@ -22,23 +22,27 @@ func main() {
 	//}
 	//err1 := os.Rename("/Users/tingfeng/work/golang/a", "/Users/tingfeng/work/golang/tmp/a")
 	//fmt.Print(err1)
-	flysnowRegexp := regexp.MustCompile(`\d+:\d+:\d+`)
-	params := flysnowRegexp.FindStringSubmatch("ip-172-37-100-93 Tue Dec 1 22:12:32 CST 2020")
-	a := subMinutesFromNow(params[0])
-	fmt.Println(a)
+	//flysnowRegexp := regexp.MustCompile(`\d+:\d+:\d+`)
+	s := "ip-172-37-100-93 Tue Dec 1 22:40:57 CST 2020\n"
+	s = strings.TrimSpace(s)
+	timeString := s[strings.Index(s, " ")+1 : len(s)]
+	m := subMinutesFromNow(timeString)
+	fmt.Println(timeString)
+	fmt.Println(m)
+	//params := flysnowRegexp.FindStringSubmatch(s)
+	//a := subMinutesFromNow(params[0])
+	//fmt.Println(a)
 
 }
 
-func subMinutesFromNow(hourMinuteSecond string) (float64) {
+func subMinutesFromNow(unixTimeString string) (float64) {
+	unixTime, err := time.Parse(time.UnixDate, unixTimeString)
+	if err != nil {
+		return 0
+	}
 	now := time.Now()
-	format := "2006-01-02 15:04:05"
-
-	nowString := now.Format(format)
-	yearMonthDay := now.Format("2006-01-02")
-
-	nowUTC, _ := time.Parse(format, nowString)
-	t2, _ := time.Parse(format, yearMonthDay+" "+hourMinuteSecond)
-
-	minutes := nowUTC.Sub(t2).Minutes()
+	fmt.Println("now time=",now)
+	fmt.Println("file time=",unixTime)
+	minutes := now.Sub(unixTime).Minutes()
 	return minutes
 }

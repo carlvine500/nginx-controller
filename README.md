@@ -7,6 +7,7 @@ sychromize nginx config file by kubernetes.configMap,and reload nginx when file(
 
 # build
 - linux `GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build`
+- arm64v8 `GOOS=linux GOARCH=arm64 go build -o nginx-controller.arm64v8`
 - macos `go build`
 
 # example

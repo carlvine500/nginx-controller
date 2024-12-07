@@ -1,18 +1,16 @@
 package nginx
 
 import (
-	"github.com/golang/glog"
-	"os"
-	"regexp"
-
-	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"bytes"
-	"io/ioutil"
+	"context"
+	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"math/rand"
+	"os"
 	"os/exec"
 	"reflect"
 	"strings"
@@ -33,7 +31,7 @@ func SyncConfigMapToLocalDir(clientset *kubernetes.Clientset, configmap2local *s
 		if !PathExists(localDir) {
 			err := os.MkdirAll(localDir, 0777)
 			if err != nil {
-				panic(err.Error())
+				panic(any(err.Error()))
 			}
 		}
 		go watchConfigMap2(clientset, configMapName, localDir)
@@ -41,49 +39,45 @@ func SyncConfigMapToLocalDir(clientset *kubernetes.Clientset, configmap2local *s
 }
 
 func watchConfigMap2(clientset *kubernetes.Clientset, configMapName string, localDir string) {
-	for {
+	//for {
 		watchConfigMap(clientset, configMapName, localDir)
-	}
+	//}
 }
 
 func watchConfigMap(clientset *kubernetes.Clientset, configMapName string, localDir string) {
 	defer func() {
-		if err := recover(); err != nil {
+		if err := recover(); any(err) != nil {
 			glog.Errorf("Unknow Error[E],err=%v,configMapName=%s,localDir=%s", err, configMapName, localDir)
 		}
 	}()
 	options := metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", configMapName).String()}
-	watcher, whErr := clientset.CoreV1().ConfigMaps("default").Watch(options)
+	watcher, whErr := clientset.CoreV1().ConfigMaps("default").Watch(context.TODO(), options)
 	if whErr != nil {
 		print(whErr)
 		return
 	}
 	glog.Infof("watch configMap=%s,localDir=%s", configMapName, localDir)
-	c := watcher.ResultChan()
-ForEnd:
-	for {
-		select {
-		case e := <-c:
-			// TODO e.Object == nil 量非常大导致cpu过高,日志磁盘占用过多
-			// bug: https://github.com/kubernetes/client-go/issues/334
-			// TODO dev nginx好了换一种写法：https://github.com/kubernetes/client-go/issues/547
-			if e.Object != nil {
-				v := reflect.ValueOf(e.Object)
-				configMap, _ := v.Elem().Interface().(v1.ConfigMap)
-				syncFile(configMap, localDir)
-			} else {
-				glog.Infof("watch empty event,configMap=%s,localDir=%s,eventType=%v", configMapName, localDir, e.Type)
-				watcher.Stop()
-				break ForEnd
+
+	for event := range watcher.ResultChan() {
+		if event.Type == watch.Modified || event.Type == watch.Added {
+			configMap, ok := event.Object.(*v1.ConfigMap)
+			if !ok {
+				glog.Errorf("Error: Could not decode object,configMapName=%s", configMapName)
+				continue
 			}
+			glog.Infof("ConfigMap=%s %s\n", configMap.Name, event.Type)
+			// eg: /etc/nginx/conf-ssl.d/a.txt==> xy
+			// configMap.Data["a.txt"]=xy
+			syncFile(*configMap, localDir)
 		}
 	}
 }
 
 func syncFile(configMap v1.ConfigMap, localDir string) {
 	hostname, _ := os.Hostname()
+	//hostname:= "ip-172-37-100-93"
 	//canNginxReload := false
-	localFileList, err := ioutil.ReadDir(localDir)
+	localFileList, err := os.ReadDir(localDir)
 	if err != nil {
 		glog.Errorf("readDir fail, localDir=%s,err=%v", localDir, err)
 	}
@@ -93,27 +87,24 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 	if !fileExists {
 		return
 	}
+	valueOfHostnameDate = strings.TrimSpace(valueOfHostnameDate)
 
-	oldValueOfHostnameDate, _ := ioutil.ReadFile(localDir+"/"+"hostname_date")
-	//hostname who upload configMap reload in n minutes
+	contentOfHostnameDate, _ := os.ReadFile(localDir+"/"+"hostname_date")
+	oldValueOfHostnameDate :=strings.TrimSpace(string(contentOfHostnameDate))
+	//hostname who upload configMap reload in n seconds
 	if strings.Contains(valueOfHostnameDate, hostname) {
-		flysnowRegexp := regexp.MustCompile(`\d+:\d+:\d+`)
-		params := flysnowRegexp.FindStringSubmatch(valueOfHostnameDate)
-		if len(params) == 0 {
-			glog.Infof("error content of hostname_date %s", valueOfHostnameDate)
-			return;
-		}
-		if subMinutesFromNow(params[0]) < 3 {
+		timeString := valueOfHostnameDate[strings.Index(valueOfHostnameDate, " ")+1:]
+		if subSecondsFromNow(timeString) < 30 {
 			reloadNginx()
 		}
 		return
 	}
-	if strings.Compare(valueOfHostnameDate, string(oldValueOfHostnameDate)) == 0 {
+
+	//hostname who receive configMap
+	if strings.Compare(valueOfHostnameDate, oldValueOfHostnameDate) == 0 {
 		//canNginxReload = true
 		return
 	}
-
-
 
 	tmpDir := localDir + "/tmp"
 	_, err2 := os.Stat(tmpDir)
@@ -139,19 +130,19 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 		newData := []byte(fileContent)
 
 		if !PathExists(localFilePath) {
-			err := ioutil.WriteFile(localFilePath, newData, 0644)
+			err := os.WriteFile(localFilePath, newData, 0644)
 			if err != nil {
 				glog.Errorf("fist time write fail, localFilePath =%s,err=%v", localFilePath, err)
 			} else {
 				glog.Infof("fist time write localFilePath =%s", localFilePath)
 			}
 		} else {
-			oldData, err := ioutil.ReadFile(localFilePath)
+			oldData, err := os.ReadFile(localFilePath)
 			if err != nil {
 				glog.Errorf("read fail, localFilePath=%s,err=%v", localFilePath, err)
 			}
 			if !bytes.Equal(oldData, newData) {
-				err := ioutil.WriteFile(localFilePath, newData, 0644)
+				err := os.WriteFile(localFilePath, newData, 0644)
 				if err != nil {
 					glog.Errorf("configMap file changed,but write fail, localFilePath=%s,err=%v", localFilePath, err)
 				} else {
@@ -162,7 +153,6 @@ func syncFile(configMap v1.ConfigMap, localDir string) {
 			}
 		}
 	}
-
 	//if canNginxReload {
 	reloadNginx()
 	//}
@@ -203,18 +193,18 @@ func PathExists(path string) bool {
 	return false
 }
 
-func subMinutesFromNow(hourMinuteSecond string) (float64) {
+
+func subSecondsFromNow(unixTimeString string) (float64) {
+	unixTime, err := time.Parse(time.UnixDate, unixTimeString)
+	//glog.Errorf("unixTimeString=%s", unixTimeString)
+	if err != nil {
+		glog.Errorf("error time string=%s", unixTimeString)
+		return 0
+	}
 	now := time.Now()
-	format := "2006-01-02 15:04:05"
-
-	nowString := now.Format(format)
-	yearMonthDay := now.Format("2006-01-02")
-
-	nowUTC, _ := time.Parse(format, nowString)
-	fileTime, _ := time.Parse(format, yearMonthDay+" "+hourMinuteSecond)
-
-	glog.Errorf("nowUTC=%v", nowUTC)
-	glog.Errorf("fileTime=%v", fileTime)
-	minutes := nowUTC.Sub(fileTime).Minutes()
+	glog.Infof("now time=%v",now)
+	glog.Infof("file time=%v",unixTime)
+	minutes := now.Sub(unixTime).Seconds()
 	return minutes
 }
+
